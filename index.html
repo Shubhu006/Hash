@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hex Generator & Hash Matcher</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f5f5f5; }
+    #output { margin-top: 1rem; padding: 1rem; background: #fff; border-radius: 8px; box-shadow: 0 0 5px #ccc; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>32-Byte Hex Generator + SHA-256 Hash Matcher</h2>
+  <p>Target Hash: <code id="target-hash">7788d3efbd60fc4780a4179e365d2a4e1048e101407acf065178f36b33da4ab6</code></p>
+  <button onclick="startSearch()">Start Search</button>
+  <div id="output"></div>
+
+  <script>
+    const targetHash = "7788d3efbd60fc4780a4179e365d2a4e1048e101407acf065178f36b33da4ab6";
+    const encoder = new TextEncoder();
+
+    function getRandomHex32() {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function sha256(hexString) {
+      const data = encoder.encode(hexString); // treat hex string as UTF-8
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function startSearch() {
+      const output = document.getElementById('output');
+      let count = 0;
+
+      output.innerHTML = `<p>Searching...</p>`;
+
+      while (true) {
+        const hex = getRandomHex32();
+        const hash = await sha256(hex);
+        count++;
+
+        if (hash === targetHash) {
+          output.innerHTML = `
+            <h3>✅ Match Found!</h3>
+            <p><strong>Generated Hex:</strong><br><code>${hex}</code></p>
+            <p><strong>Attempts:</strong> ${count}</p>
+          `;
+          break;
+        }
+
+        if (count % 1000 === 0) {
+          output.innerHTML = `<p>Attempts: ${count}</p>`;
+          await new Promise(resolve => setTimeout(resolve, 10)); // yield to UI
+        }
+      }
+    }
+  </script>
+</body>
+</html>
